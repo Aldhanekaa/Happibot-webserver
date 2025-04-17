@@ -50,13 +50,13 @@ class EmotionDetector():
         self.image_size = 160
         self.mtcnn = MTCNN(image_size=self.image_size,min_face_size=40,margin=20,post_process=False,keep_all=True )
         with tf.device("/GPU:0"):
-            self.happiness_detection_model = tf.keras.models.load_model("Happiness Detection Model.keras")
+            self.happiness_detection_model = tf.keras.models.load_model("./Happiness Detection Model.keras")
         self.pause = True
     
     def run(self) :
         while self.cap.isOpened() :
             ret, frame = self.cap.read()
-            print(f"Pause Processing Happiness Detection : {self.pause}")
+            # print(f"Pause Processing Happiness Detection : {self.pause}")
             if self.pause:
                 continue
             if not ret:

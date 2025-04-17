@@ -11,6 +11,8 @@ class Camera():
     def getFrame(self):
         return self.frame
     def run(self) :
+        print("Start Running Camera")
+
         if not self.cap.isOpened():
             self.cap.open(0)
     
@@ -19,9 +21,13 @@ class Camera():
             self.ret, self.frame = self.cap.read()
     
     def start(self):
+        print("Start Streaming Camera")
         self.thread.start()
     def isOpened(self):
         return self.cap.isOpened()
+
+    def release(self):
+        self.cap.release()
 
     def join(self):
         self.thread.join()

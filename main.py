@@ -27,6 +27,7 @@ def get_device():
 
     return device
 device = get_device()
+print(device)
 
 cap = cv2.VideoCapture(0)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
@@ -34,13 +35,13 @@ cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
 image_size = 160
 
-resnet = InceptionResnetV1(pretrained='vggface2',).eval()
+# resnet = InceptionResnetV1(pretrained='vggface2', device=device).eval()
 
 happiness_states_queue = Queue(maxsize=0)
 faces_queue = Queue(maxsize=0)
 
 cam =  Camera(cap)
-emotionDetector =  EmotionDetector(cap,happiness_states_queue, device=device)
+# emotionDetector =  EmotionDetector(cap,happiness_states_queue, device=device)
 faceDetector =  FaceRecognition(cap,faces_queue, device=device)
 
 app = Flask(__name__)
@@ -69,17 +70,14 @@ def capture_frames(userId, stop_event):
             # socketio.sleep(0.1)  # sleep to limit the frame rate
             
             try:
+                frame = cam.getFrame()
+
+                if frame is None:
+                    continue
+                
                 if not happiness_states_queue.empty():
                     results = happiness_states_queue.get()
                     face_results = None
-                    if not faces_queue.empty():
-                        face_results = faces_queue.get()
-                        face_results_saved = face_results
-                        print(face_results)
-                    frame = cam.getFrame()
-
-                    if frame is None:
-                        continue
 
                     # print(f"tye {type(frame)}")
 
@@ -90,26 +88,48 @@ def capture_frames(userId, stop_event):
                         happiness_output = result[2]
                         happiness_colour = result[3]
 
-                        if face_results_saved is not None:
-                            if i < len(face_results_saved):
-                                frame = cv2.putText(frame, face_results_saved[i], (int(box[0]),int(box[3]+35)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0),2)
                         frame = cv2.putText(frame, f"{happiness_state} {happiness_output*100:.2f}%", (int(box[0]),int(box[1]-20)), cv2.FONT_HERSHEY_SIMPLEX, 1, happiness_colour,2)
-                        frame = cv2.rectangle(frame, (int(box[0]),int(box[1])) , (int(box[2]),int(box[3])), happiness_colour, 5)
+                        frame = cv2.rectangle(frame, (int(box[0]),int(box[1])) , (int(box[2]),int(box[3])), happiness_colour, 5)            
+                
+                if not faces_queue.empty():
+                    face_results = None
+                    face_results = faces_queue.get()
+                    face_results_saved = face_results
+                    # print("Face Results")
+                    # print(face_results)
+                    print("Face Results Saved")
+                    print(face_results)
+                    print(len(face_results_saved))
 
-                    _, buffer = cv2.imencode('.jpg', frame)
-                    frame_data = base64.b64encode(buffer).decode('utf-8')
-                    socketio.emit('frame', frame_data)
-                    socketio.sleep(0.1)  # sleep to limit the frame rate        
-                else:
-                    frame = cam.getFrame()
+
+                    if face_results_saved is not None:
+                        i = 0
+                        for i in range(len(face_results_saved)):
+                            print(i)
+                            print(f"face {i}")
+                            box = face_results_saved[i][1]
+                            print("box")
+                            print(box)
+                            frame = cv2.putText(frame, face_results_saved[i][0], (int(box[0]),int(box[3]+35)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0),2)
+                    
                     _, buffer = cv2.imencode('.jpg', frame)
                     frame_data = base64.b64encode(buffer).decode('utf-8')
                     socketio.emit('frame', frame_data)
                     socketio.sleep(0.1)  # sleep to limit the frame rate
+                    
+                socketio.sleep(0.1) 
+                
+                # _, buffer = cv2.imencode('.jpg', frame)
+                # frame_data = base64.b64encode(buffer).decode('utf-8')
+                # socketio.emit('frame', frame_data)
+                # socketio.sleep(0.1)  # sleep to limit the frame rate
+
             except:
-                print("YE")
+                pass
+                # print("YE")
     except:
-        print("SH")
+        pass
+        # print("SH")
 
 @app.route('/')
 def index():
@@ -128,7 +148,7 @@ def handle_connect():
         thread.daemon = True
         thread.start()
         user_threads[user_id] = (thread, stop_event)
-        emotionDetector.resumeRunning()
+        # emotionDetector.resumeRunning()
         faceDetector.resumeRunning()
     # socketio.start_background_task(capture_frames)
 
@@ -150,7 +170,7 @@ def handle_disconnect():
         if len(user_threads.keys()) == 0:
             happiness_states_queue.empty()
             faces_queue.empty()
-            emotionDetector.pauseRunning()
+            # emotionDetector.pauseRunning()
             faceDetector.pauseRunning()
 
 
@@ -161,6 +181,6 @@ def exit_handler():
 if __name__ == '__main__':
     cam.start()
     faceDetector.start()
-    emotionDetector.start()
+    # emotionDetector.start()
     socketio.run(app, host='0.0.0.0', port=3001)
-    # atexit.register(exit_handler)
+    atexit.register(exit_handler)

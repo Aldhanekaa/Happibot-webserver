@@ -1,0 +1,2 @@
+ImportError: cannot import name 'interp' from 'scipy' 
+solution : pip install scipy==1.11.4
