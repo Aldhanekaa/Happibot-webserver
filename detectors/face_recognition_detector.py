@@ -4,6 +4,12 @@ import tensorflow as tf
 import torch
 from PIL import Image
 import cv2
+import os
+
+try:
+    __dir__ = os.path.dirname(os.path.abspath(__file__))
+except NameError:
+    __dir__ = os.getcwd()
 
 class FaceRecognitionDetector():
     def __init__(self, device):
@@ -11,7 +17,7 @@ class FaceRecognitionDetector():
         self.image_size = 160
         self.mtcnn = MTCNN(image_size=self.image_size,min_face_size=40,keep_all=True,
         thresholds=[0.6, 0.7, 0.7], factor=0.709, post_process=True)
-        load_data = torch.load('/Users/aldhan/Documents/dev/Happibot-SourceCode/detectors/Level11_Embeddings_2.pt',map_location=device) 
+        load_data = torch.load(os.path.join(__dir__, '/detectors/Level11_Embeddings_2.pt'), map_location=device) 
         self.embedding_list = load_data[0] 
         self.name_list = load_data[1] 
         self.resnet = InceptionResnetV1(pretrained='vggface2', device=device).eval()
@@ -46,7 +52,7 @@ class FaceRecognitionDetector():
                     if (min_dist) < 0.7:
                         min_dist = 1 - min_dist
                         predicted_name = name
-                        print(f"{name} {1- min_dist}")
+                        print(f"{predicted_name} {1- min_dist}")
                     frame = cv2.putText(frame, predicted_name+' '+str((1-min_dist) * 100)+"%", (int(box[0]),int(box[1])), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0),1)
                         
                         # else:
